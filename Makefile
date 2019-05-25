@@ -1,13 +1,13 @@
-objects = main.o game.o
+objects = main.obj game.obj
 
 all: $(objects)
-	nvcc -arch=sm_30 $(objects) -o app
+	nvcc -arch=sm_30 $(objects) -o game
 
-%.o: %.cpp
+%.obj: %.cpp
 	nvcc -x cu -arch=sm_30 -I. -dc $< -o $@
 
-%.o: src/%.cpp
+%.obj: src/%.cpp
 	nvcc -x cu -arch=sm_30 -I. -dc $< -o $@
 
 clean:
-	rm -f *.o app.*
+	rm -f *.obj game.*
