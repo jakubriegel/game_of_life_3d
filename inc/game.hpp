@@ -2,33 +2,47 @@
 
 #include "../inc/project.hpp"
 
-#define ARENA_DIM 10
+#define ARENA_DIM 100
 
 #define KILL_LOW 2
-#define KILL_HIGH 3
-#define REVIVE 3
+#define KILL_HIGH 7
+#define REVIVE_LOW 3
+#define REVIVE_HIGH 6
+
+struct cell {
+    unsigned x;
+    unsigned y;
+    unsigned z;
+};
 
 __device__ __host__
-unsigned int cell_index(const unsigned int & x, const unsigned int & y);
+unsigned cell_index(const cell & c);
 
 __device__ __host__
-void revive_cell(const unsigned int & x, const unsigned int & y, bool * const arena);
+unsigned cell_index(const unsigned & x, const unsigned & y, const unsigned & z);
+
 
 __device__ __host__
-void kill_cell(const unsigned int & x, const unsigned int & y, bool * const arena);
+void revive_cell(const cell & c);
 
 __device__ __host__
-unsigned int count_neighbours(const unsigned int & x, const unsigned int & y, const bool * const old);
+void kill_cell(const cell & c);
 
 __device__ __host__
-void mature_cell(const unsigned int & x, const unsigned int & y, bool * const arena, const bool * const old);
+unsigned count_neighbours(const cell & c);
+
+__device__ __host__
+void mature_cell(
+    const cell & c,
+    bool * const arena, const bool * const old
+);
 
 __global__
 void mature_cells(bool * const arena, const bool * const old);
 
 class game {
     private:
-        unsigned int generation = 0;
+        unsigned generation = 0;
 
         void new_arena();
         void init_cells();
@@ -40,5 +54,5 @@ class game {
         ~game();
 
         void next_generation();
-        void print_arena();
+        void print_arena() const;
 };

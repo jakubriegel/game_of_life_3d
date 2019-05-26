@@ -1,26 +1,14 @@
 #include "inc/project.hpp"
 #include "inc/game.hpp"
 
-int main(void)
-{
-    printf("it works");
-    auto g = game();
-    printf("\n\n");
-    for (long long i = 0; i < 10; i++) {
-        g.next_generation();
-        cudaDeviceSynchronize();
-        g.print_arena();
-        printf("\n\n");
-    }
+int main(int argc, char **argv) {
+    const unsigned generations = std::atoi(argv[1]);
     
-    // g.next_generation();
+    auto g = game();
+    for (unsigned i = 0; i < generations; i++) {
+        g.next_generation();
+    }
     // g.print_arena();
-    // printf("\n\n");
-    // g.next_generation();
-    // g.print_arena();
-    // game<<<5, 100>>>(ARENA_DIM, arena);
-
-    cudaDeviceSynchronize();
     
     return 0;
 }

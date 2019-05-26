@@ -2,5 +2,7 @@
 build
 *.exe
 *.exp
+*.out
 *.lib
 *.o
+*.obj
