@@ -2,6 +2,8 @@
 
 // std
 #include <iostream>
+#include <cstdlib>
+#include <stdio.h>
 
 // cuda
 #include <cuda.h>

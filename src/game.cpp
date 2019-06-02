@@ -39,9 +39,11 @@ void mature_cell(
     const auto index = cell_index(c);
     if (old[index]) { 
         if (neighbours < KILL_LOW || neighbours > KILL_HIGH) kill_cell(c, arena);
+        else revive_cell(c, arena);
     }
     else {
         if (neighbours >= REVIVE_LOW && neighbours <= REVIVE_HIGH) revive_cell(c, arena);
+        else kill_cell(c, arena);
     }
 }
 
@@ -49,7 +51,7 @@ __global__
 void mature_cells(bool * const arena, const bool * const old) {
     const unsigned y = threadIdx.x;
     const unsigned z = blockIdx.x;
-
+    
     for (unsigned x = 0; x < ARENA_DIM; x++) {
         const cell c{x, y, z};
         mature_cell(c, arena, old);
@@ -57,16 +59,23 @@ void mature_cells(bool * const arena, const bool * const old) {
 }
 
 game::game() {
-    new_arena();
+    init_arena();
     init_cells();
 }
 
 game::~game() { cudaFree(arena); };
 
-void game::new_arena() {
+void game::init_arena() {
     const auto full_size = ARENA_DIM * ARENA_DIM * ARENA_DIM;
-    auto err = cudaMallocManaged(&arena, full_size*sizeof(bool));
-    for (unsigned i = 0; i < full_size; i++) arena[i] = false;
+    const auto arena_size = full_size * sizeof(bool);
+    cudaMallocManaged(&arena, arena_size);
+    cudaMallocManaged(&old_arena, arena_size);
+}
+
+void game::switch_arena() {
+    bool * const temp = arena;
+    arena = old_arena;
+    old_arena = temp;
 }
 
 void game::init_cells() {
@@ -85,12 +94,9 @@ void game::init_cells() {
 }
 
 void game::next_generation() {
-    bool * const old = arena;
-    new_arena();
-    for(unsigned i = 0; i < ARENA_DIM * ARENA_DIM * ARENA_DIM; i++) if (old[i]) arena[i] = true;
-    mature_cells<<<ARENA_DIM, ARENA_DIM>>>(arena, old);
+    switch_arena();
+    mature_cells<<<ARENA_DIM, ARENA_DIM>>>(arena, old_arena);
     cudaDeviceSynchronize();
-    cudaFree(old);
     generation++;
 }
 

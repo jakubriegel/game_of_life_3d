@@ -44,11 +44,14 @@ class game {
     private:
         unsigned generation = 0;
 
-        void new_arena();
+        void init_arena();
+        void switch_arena();
+
         void init_cells();
 
     public:
         bool * arena;
+        bool * old_arena;
 
         game();
         ~game();
