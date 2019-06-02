@@ -3,7 +3,7 @@
 // std
 #include <iostream>
 #include <cstdlib>
-#include <stdio.h>
+#include <cstdio>
 
 // cuda
 #include <cuda.h>
