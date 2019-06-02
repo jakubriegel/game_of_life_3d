@@ -21,12 +21,17 @@ unsigned cell_index(const cell & c);
 __device__ __host__
 unsigned cell_index(const unsigned & x, const unsigned & y, const unsigned & z);
 
+__device__ __host__
+void revive_cell(const cell & c, bool * const arena);
 
 __device__ __host__
-void revive_cell(const cell & c);
+void revive_cell(const unsigned & i, bool * const arena);
 
 __device__ __host__
-void kill_cell(const cell & c);
+void kill_cell(const cell & c, bool * const arena);
+
+__device__ __host__
+void kill_cell(const unsigned & i, bool * const arena);
 
 __device__ __host__
 unsigned count_neighbours(const cell & c);

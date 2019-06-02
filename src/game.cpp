@@ -11,10 +11,16 @@ unsigned cell_index(const unsigned & x, const unsigned & y, const unsigned & z) 
 }
 
 __device__ __host__
-inline void revive_cell(const cell & c, bool * const arena) { arena[cell_index(c)] = true; }
+inline void revive_cell(const cell & c, bool * const arena) { revive_cell(cell_index(c), arena); }
 
 __device__ __host__
-inline void kill_cell(const cell & c, bool * const arena) { arena[cell_index(c)] = false; }
+inline void revive_cell(const unsigned & i, bool * const arena) { arena[i] = true; }
+
+__device__ __host__
+inline void kill_cell(const cell & c, bool * const arena) { kill_cell(cell_index(c), arena); }
+
+__device__ __host__
+inline void kill_cell(const unsigned & i, bool * const arena) { arena[i] = false; }
 
 __device__ __host__
 unsigned count_neighbours(const cell & c, const bool * const old) {
@@ -38,12 +44,12 @@ void mature_cell(
     const auto neighbours = count_neighbours(c, old);
     const auto index = cell_index(c);
     if (old[index]) { 
-        if (neighbours < KILL_LOW || neighbours > KILL_HIGH) kill_cell(c, arena);
-        else revive_cell(c, arena);
+        if (neighbours < KILL_LOW || neighbours > KILL_HIGH) kill_cell(index, arena);
+        else revive_cell(index, arena);
     }
     else {
-        if (neighbours >= REVIVE_LOW && neighbours <= REVIVE_HIGH) revive_cell(c, arena);
-        else kill_cell(c, arena);
+        if (neighbours >= REVIVE_LOW && neighbours <= REVIVE_HIGH) revive_cell(index, arena);
+        else kill_cell(index, arena);
     }
 }
 
