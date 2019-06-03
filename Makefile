@@ -1,4 +1,4 @@
-objects = main.obj game.obj
+objects = main.obj game.obj game_cuda.obj
 
 all: $(objects)
 	nvcc -arch=sm_50 $(objects) -o game
