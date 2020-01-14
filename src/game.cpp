@@ -1,97 +1,81 @@
 #include "../inc/game.hpp"
 
-__device__ __host__
-unsigned int cell_index(const unsigned int & x, const unsigned int & y) {
-    return ARENA_DIM * y + x;
-}
-
-__device__ __host__
-void revive_cell(const unsigned int & x, const unsigned int & y, bool * const arena) { 
-    arena[cell_index(x, y)] = true;
-}
-
-__device__ __host__
-void kill_cell(const unsigned int & x, const unsigned int & y, bool * const arena) { 
-    arena[cell_index(x, y)] = false;
-}
-
-__device__ __host__
-unsigned int count_neighbours(const unsigned int & x, const unsigned int & y, const bool * const old) {
-    unsigned int neighbours = 0;
-    for (int i = x-1; i <= x+1; i++) if(i > 0 && i < ARENA_DIM) 
-        for (unsigned int j = y-1; j <= y+1; j++) if(j > 0 && j < ARENA_DIM)
-            if (!(x == i && y == j)) if (old[cell_index(i, j)]) neighbours++;
-    return neighbours;
-}
-
-__device__ __host__
-void mature_cell(const unsigned int & x, const unsigned int & y, bool * const arena, const bool * const old) {
-    const auto neighbours = count_neighbours(x, y, old);
-    const auto index = cell_index(x, y);
-    if (old[index]) { 
-        if (neighbours < KILL_LOW || neighbours > KILL_HIGH) kill_cell(x, y, arena);
-    }
-    else {
-        if (neighbours == REVIVE) revive_cell(x, y, arena);
-    }
-}
-
-__global__
-void mature_cells(bool * const arena, const bool * const old) {
-    const int index = threadIdx.x;
-    const int block = blockIdx.x;
-    const int dim = blockDim.x;
-    // blockI
-
-    for (unsigned int x = index; x < ARENA_DIM; x += dim) {
-        for (unsigned int y = 0; y < ARENA_DIM; y++) 
-            mature_cell(x, y, arena, old);
-    }
-}
-
 game::game() {
-    new_arena();
+    init_arena();
+    init_kernel_gen();
     init_cells();
-    print_arena();
+
+    cuda_init();
 }
 
-game::~game() { cudaFree(arena); };
+game::~game() { 
+    cudaFree(even_arena); 
+    cudaFree(odd_arena);
+};
 
-void game::new_arena() {
-    const auto full_size = ARENA_DIM * ARENA_DIM;
-    cudaMallocManaged(&arena, full_size*sizeof(bool));
-    for (int i = 0; i < ARENA_DIM; i++) arena[i] = false;
+void game::init_arena() {
+    const auto arena_size = game::arena_size();
+    cudaMallocManaged(&even_arena, arena_size);
+    cudaMallocManaged(&odd_arena, arena_size);
+}
+
+void game::switch_arena() {
+    bool * const temp = even_arena;
+    even_arena = odd_arena;
+    odd_arena = temp;
 }
 
 void game::init_cells() {
     const auto center = ARENA_DIM / 2;
-    revive_cell(0 + center, 1 + center, arena);
-    revive_cell(1 + center, 2 + center, arena);
-    revive_cell(2 + center, 0 + center, arena);
-    revive_cell(2 + center, 1 + center, arena);
-    revive_cell(2 + center, 2 + center, arena);
+    const cell start[7] = {
+        {0 + center, 0 + center, 5}, 
+        {1 + center, 0 + center, 5},
+        {0 + center, 1 + center, 5}, 
+        {-1 + center, 0 + center, 5},
+        {0 + center, -1 + center, 5},
+        {0 + center, 0 + center, 6}, 
+        {0 + center, 0 + center, 4}
+    };
+
+    for (const cell & c : start) revive_cell(c, odd_arena);
 }
 
-void game::next_generation() {
-    bool * old = arena;
-    new_arena();
-    for(unsigned int i = 0; i < ARENA_DIM * ARENA_DIM; i++) if (old[i]) arena[i] = true;
+void game::init_kernel_gen() { cudaMallocManaged(&kernel_gen, game::kernel_number() * sizeof(unsigned)); }
+
+void game::start(const unsigned & n) {
+    // fflush(stdout);
     
-    mature_cells<<<1, 1>>>(arena, old);
-    cudaDeviceSynchronize();
+    cuda_game(n, even_arena, odd_arena, kernel_gen);
+    cuda_finalize();
     
-    generation++;
+    generation += n;
 }
 
-void game::print_arena() {
-    for (unsigned int x = 0; x < ARENA_DIM; x++) {
-        for (unsigned int y = 0; y < ARENA_DIM; y++) 
-            printf("%d ", arena[cell_index(x, y)]);
+void game::print_arena() const {
+    const bool * const arena = ([&]() {
+        if (generation % 2 == 0) return odd_arena;
+        else return even_arena;
+    })();
+
+    printf("generation: %d\n\n", generation);
+    for (unsigned z = 0; z < ARENA_DIM; z++) {
+        printf("%d\n", z);
+        for (unsigned x = 0; x < ARENA_DIM; x++) {
+            for (unsigned y = 0; y < ARENA_DIM; y++) printf("%d ", arena[cell_index(x, y, z)]);
+            printf("\n");
+        }
         printf("\n");
     }
+    printf("\n");
 }
 
-// const unsigned int ARENA_DIM = 10;
-// const unsigned int KILL_LOW = 2;
-// const unsigned int KILL_HIGH = 3;
-// const unsigned int REVIVE = 3;
+void game::print_kernel_gen() const {
+    for (unsigned i = 0; i < game::kernel_number(); i++) {
+        printf("%d ", kernel_gen[i]);
+    }
+    printf("\n");
+}
+
+unsigned game::full_size() { return ARENA_DIM * ARENA_DIM * ARENA_DIM; }
+unsigned game::arena_size() { return game::full_size() * sizeof(bool); }
+unsigned game::kernel_number() { return ARENA_DIM * ARENA_DIM; }

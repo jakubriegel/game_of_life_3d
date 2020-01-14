@@ -1,44 +1,38 @@
 #pragma once
 
-#include "../inc/project.hpp"
+#include "project.hpp"
+#include "game_cuda.hpp"
 
-#define ARENA_DIM 10
+#define ARENA_DIM 75
 
 #define KILL_LOW 2
-#define KILL_HIGH 3
-#define REVIVE 3
-
-__device__ __host__
-unsigned int cell_index(const unsigned int & x, const unsigned int & y);
-
-__device__ __host__
-void revive_cell(const unsigned int & x, const unsigned int & y, bool * const arena);
-
-__device__ __host__
-void kill_cell(const unsigned int & x, const unsigned int & y, bool * const arena);
-
-__device__ __host__
-unsigned int count_neighbours(const unsigned int & x, const unsigned int & y, const bool * const old);
-
-__device__ __host__
-void mature_cell(const unsigned int & x, const unsigned int & y, bool * const arena, const bool * const old);
-
-__global__
-void mature_cells(bool * const arena, const bool * const old);
+#define KILL_HIGH 7
+#define REVIVE_LOW 3
+#define REVIVE_HIGH 6
 
 class game {
     private:
-        unsigned int generation = 0;
+        unsigned generation = 0;
 
-        void new_arena();
+        void init_arena();
+        void switch_arena();
+
         void init_cells();
+        void init_kernel_gen();
 
     public:
-        bool * arena;
-
+        bool * even_arena;
+        bool * odd_arena;
+        unsigned * kernel_gen;
         game();
         ~game();
 
-        void next_generation();
-        void print_arena();
+        void start(const unsigned & n);
+
+        void print_arena() const;
+        void print_kernel_gen() const;
+
+        static unsigned full_size();
+        static unsigned arena_size();
+        static unsigned kernel_number();
 };
